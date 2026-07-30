@@ -6,23 +6,75 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import { useTheme } from '@mui/material/styles';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { BarChart, BarLabel } from '@mui/x-charts/BarChart';
 import type { BarLabelProps } from '@mui/x-charts/BarChart';
 import type { AxisConfig, ChartsXAxisProps } from '@mui/x-charts';
+import { axisClasses } from '@mui/x-charts/ChartsAxis';
+import { useHighlighted } from '@mui/x-charts/context';
+import { useDrawingArea } from '@mui/x-charts/hooks';
 import type { BreadthPoint } from '@/types';
 import { usePolarity } from '@/theme/usePolarity';
 import SectionCard from './SectionCard';
 
+/** Air between a bar's top edge and the digits sitting above it. */
+const LABEL_GAP = 5;
+
 /**
- * Bar-label ink: one value for both series — white or near-black by the fills'
- * luminance, so it clears 4.5:1 on either pole. Not a dark shade of each bar's own
- * hue, which is same-hue-on-hue and read as mud at both ends.
+ * A live react-spring value. x-charts types `style.y` as the plain SVG attribute,
+ * but at runtime it's whatever the label's transition is animating — so narrow to
+ * the one method we need (`to`, which derives a value from it) instead of guessing.
+ */
+type Fluid = { to: (interpolate: (value: number) => number) => unknown };
+
+function isFluid(value: unknown): value is Fluid {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof Reflect.get(value, 'to') === 'function'
+  );
+}
+
+/**
+ * Labels sit *above* their bars rather than inside them: at slab width the digits
+ * were riding on the fill, which needed a contrasting ink and still fought the hue.
+ * Outside, they read as the axis does — one quiet secondary ink for both poles,
+ * leaving the fill to carry the polarity on its own (see `charts.ts` for the ink).
+ *
+ * x-charts centres a bar label: `y` = barTop + barHeight/2. Columns grow from the
+ * zero baseline at the bottom of the plot, so barHeight = baseline − barTop and
+ * therefore barTop = 2y − baseline — which lifts the label with only the `y` spring,
+ * animation intact. `style.y` is a react-spring value on mount, a plain number when
+ * animation is skipped, hence the `to` check.
+ *
+ * Hovering a bar brings both of that date's counts up to full-strength ink — the whole
+ * band, keyed on `dataIndex`, because the two series share it. That's a per-index state,
+ * so it can't live in the theme the way the resting ink does.
  */
 function BreadthBarLabel(props: BarLabelProps) {
-  const { ink } = usePolarity();
-  return <BarLabel {...props} style={{ ...props.style, fill: ink }} />;
+  const theme = useTheme();
+  const { top, height } = useDrawingArea();
+  const { highlightedItem } = useHighlighted();
+  const baseline = top + height;
+  const lift = (barCentre: number) => 2 * barCentre - baseline - LABEL_GAP;
+
+  const y: unknown = props.style?.y;
+  const lifted = isFluid(y) ? y.to(lift) : typeof y === 'number' ? lift(y) : y;
+  const lit = highlightedItem?.dataIndex === props.dataIndex;
+
+  return (
+    <BarLabel
+      {...props}
+      style={{
+        ...props.style,
+        // Cast back: the attribute type says `number`; a spring value stands in for one.
+        y: lifted as number,
+        ...(lit && { fill: (theme.vars || theme).palette.text.primary }),
+      }}
+    />
+  );
 }
 
 type BreadthCardProps = {
@@ -50,9 +102,10 @@ const RANGES: { value: Range; label: string }[] = [
 const MIN_RANGE = 30;
 
 /**
- * Past this many columns an in-bar label has no room, so the values move to the
- * y-axis instead. Labelling every bar *and* showing an axis is redundant; doing
- * neither would leave the tooltip as the only way to read a value.
+ * Past this many columns a per-bar label has no room — the bands narrow until the
+ * digits collide — so the values move to the y-axis instead. Labelling every bar *and*
+ * showing an axis is redundant, and with no tooltip one of the two has to carry the
+ * values, so it's always exactly one.
  */
 const MAX_LABELLED = 12;
 
@@ -93,7 +146,9 @@ function CountStat({ value, color }: { value: number; color: string }) {
 function KeyDot({ label, color }: { label: string; color: string }) {
   return (
     <Stack direction="row" alignItems="center" spacing={0.625}>
-      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
+      <Box
+        sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, flexShrink: 0 }}
+      />
       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
         {label}
       </Typography>
@@ -120,6 +175,8 @@ export default function BreadthCard({ data }: BreadthCardProps) {
   const [range, setRange] = useState<Range>(30);
   // Snapshots back from the newest. 0 == showing the most recent window.
   const [offset, setOffset] = useState(0);
+  // Which band the pointer is on, so its date can answer with the counts above it.
+  const [hovered, setHovered] = useState<number | null>(null);
 
   const size = range === 'all' ? data.length : Math.min(range, data.length);
   const maxOffset = Math.max(0, data.length - size);
@@ -163,7 +220,7 @@ export default function BreadthCard({ data }: BreadthCardProps) {
 
   return (
     <SectionCard
-      title="20 percenters"
+      title="20% in 5 days"
       action={
         <Stack direction="row" alignItems="center" spacing={2}>
           <Stack direction="row" alignItems="center" spacing={1.25}>
@@ -188,7 +245,11 @@ export default function BreadthCard({ data }: BreadthCardProps) {
               </ToggleButtonGroup>
               <Stack direction="row">
                 <Tooltip title="Earlier snapshots">
-                  <IconButton size="small" onClick={panBack} disabled={clamped >= maxOffset}>
+                  <IconButton
+                    size="small"
+                    onClick={panBack}
+                    disabled={clamped >= maxOffset}
+                  >
                     <ChevronLeftRoundedIcon sx={{ fontSize: 18 }} />
                   </IconButton>
                 </Tooltip>
@@ -230,13 +291,48 @@ export default function BreadthCard({ data }: BreadthCardProps) {
             grid={labelled ? undefined : { horizontal: true }}
             series={[
               { id: 'up', label: 'Up', data: visible.map((d) => d.up), color: up },
-              { id: 'down', label: 'Down', data: visible.map((d) => d.down), color: down },
+              {
+                id: 'down',
+                label: 'Down',
+                data: visible.map((d) => d.down),
+                color: down,
+              },
             ]}
-            barLabel={labelled ? (item) => (item.value ? String(item.value) : null) : undefined}
+            barLabel={
+              labelled ? (item) => (item.value ? String(item.value) : null) : undefined
+            }
             slots={{ barLabel: BreadthBarLabel }}
             // The header carries the key instead — it survives at any plot width.
             slotProps={{ legend: { hidden: true } }}
-            margin={{ top: 12, right: 4, bottom: 24, left: labelled ? 4 : 34 }}
+            // No tooltip and no highlight band. The tooltip only restated the count
+            // and the date, both already printed on the plot, and the band was a grey
+            // wash over the whole column to say "this one".
+            tooltip={{ trigger: 'none' }}
+            axisHighlight={{ x: 'none' }}
+            // The reply to a hover instead: the band's counts and its date come up to
+            // full-strength ink and everything else stays put. Nothing moves, nothing
+            // is covered, and the numbers you're reading are the ones that brighten.
+            onHighlightChange={(item) => setHovered(item?.dataIndex ?? null)}
+            sx={
+              hovered === null
+                ? undefined
+                : (theme) => ({
+                    // Band ticks come off the axis domain in order, so tick container
+                    // n is data index n. The tick-label slot gets no index of its own,
+                    // and matching on the printed date would light both "15/7"s in a
+                    // window spanning more than a year.
+                    [`& .${axisClasses.tickContainer}:nth-of-type(${hovered + 1}) .${axisClasses.tickLabel}`]:
+                      { fill: (theme.vars || theme).palette.text.primary },
+                  })
+            }
+            // Extra headroom when labelled: the digits sit above the tallest bar,
+            // which can reach the top of the plot.
+            margin={{
+              top: labelled ? 22 : 12,
+              right: 4,
+              bottom: 24,
+              left: labelled ? 4 : 34,
+            }}
           />
         </Box>
       </Stack>

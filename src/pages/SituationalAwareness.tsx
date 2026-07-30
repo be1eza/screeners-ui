@@ -22,7 +22,7 @@ const TIMEFRAMES: { label: string; field: PerfField }[] = [
 
 /**
  * Situational Awareness & Themes — the home dashboard. Reads off the vault:
- * weekly breadth (±20%), 52w-high industry domination, momentum-watchlist
+ * weekly breadth (±20%), the industries behind each side of it, 52w-high
  * domination, then the three ETF baskets as one rotation stack, broadest first
  * (Markets → Sectors → Group Themes). They share a schema and identical cards,
  * so a rotation can be read straight down the page from asset class to theme.
@@ -54,16 +54,13 @@ export default function SituationalAwareness() {
             <BreadthCard data={state.data.breadth} />
           </Grid>
           <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-            <BreadthIndustriesCard
-              up={state.data.movers20.up}
-              down={state.data.movers20.down}
-            />
+            <BreadthIndustriesCard side="up" data={state.data.movers20.up} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+            <BreadthIndustriesCard side="down" data={state.data.movers20.down} />
           </Grid>
           <Grid size={{ xs: 12, md: 6, lg: 4 }}>
             <IndustryDominationCard title="52w highs" data={state.data.highs} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-            <IndustryDominationCard title="Movers watchlists" data={state.data.momentum} />
           </Grid>
           {/* One section per basket, broadest first: asset class → GICS sector → theme. */}
           {state.data.baskets.map(({ basket, rows, date }) => (
@@ -82,12 +79,7 @@ export default function SituationalAwareness() {
                 </Grid>
               ))}
               <Grid size={12}>
-                <BasketPerformanceCard
-                  basket={basket}
-                  data={rows}
-                  // The section heading already names the basket and dates it.
-                  title="All timeframes & trend"
-                />
+                <BasketPerformanceCard basket={basket} data={rows} />
               </Grid>
             </Fragment>
           ))}

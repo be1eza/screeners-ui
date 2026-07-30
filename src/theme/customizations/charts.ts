@@ -6,7 +6,7 @@ import { overlayShadow } from '../themePrimitives';
 /**
  * Charts follow the same rule as the grids: the data draws itself and the
  * scaffolding gets out of the way. Axis ink is secondary-weight and small,
- * lines and ticks are hairlines, bar labels are compact bold digits.
+ * lines and ticks are hairlines, and bar labels read as part of that same scaffolding.
  */
 export const chartsCustomizations: Components<Theme> = {
   MuiChartsAxis: {
@@ -16,6 +16,10 @@ export const chartsCustomizations: Components<Theme> = {
           fill: (theme.vars || theme).palette.text.secondary,
           fontSize: '0.6875rem',
           fontWeight: 500,
+          // So a chart that brightens one tick on hover (BreadthCard) fades into it,
+          // the way the bar labels already do — the property has to carry the
+          // transition at rest, or only the way in would animate.
+          transition: 'fill 0.2s ease-in',
         },
         [`& .${axisClasses.label}`]: {
           fill: (theme.vars || theme).palette.text.secondary,
@@ -28,9 +32,18 @@ export const chartsCustomizations: Components<Theme> = {
     },
   },
 
+  // Bar labels sit above their bars (BreadthCard lifts them), so they're axis ink,
+  // not in-fill ink: the same secondary color and size as a tick label, and anchored
+  // by their own baseline rather than centred, so the gap above the bar is the gap
+  // you set.
   MuiBarLabel: {
     styleOverrides: {
-      root: { fontSize: '0.625rem', fontWeight: 700 },
+      root: ({ theme }) => ({
+        fill: (theme.vars || theme).palette.text.secondary,
+        fontSize: '0.6875rem',
+        fontWeight: 600,
+        dominantBaseline: 'auto',
+      }),
     },
   },
 

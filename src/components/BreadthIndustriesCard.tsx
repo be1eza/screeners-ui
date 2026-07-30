@@ -1,63 +1,29 @@
-import { useState } from 'react';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import { alpha } from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
 import type { IndustryRank } from '@/types';
 import IndustryBars from './IndustryBars';
 import SectionCard from './SectionCard';
 
-type Polarity = 'up' | 'down';
-
 type BreadthIndustriesCardProps = {
-  up: IndustryRank[];
-  down: IndustryRank[];
+  /** Which half of the ±20% move this card ranks — sets the hue and the label. */
+  side: 'up' | 'down';
+  data: IndustryRank[];
   topN?: number;
 };
 
-const SIDES: { key: Polarity; label: string }[] = [
-  { key: 'up', label: 'Up' },
-  { key: 'down', label: 'Down' },
-];
-
 /**
  * Which industries the latest ±20% movers sit in — the composition behind the
- * breadth counts. One card, two sides: the toggle swaps the ranking and carries
- * the polarity hue into the bars, so up and down never read as the same measure.
+ * breadth counts. One card per side, sitting next to each other so up and down
+ * are read together instead of swapped; the polarity rides in the hue and in the
+ * label on the title rule, never in a subtitle.
  */
-export default function BreadthIndustriesCard({ up, down, topN }: BreadthIndustriesCardProps) {
-  const [side, setSide] = useState<Polarity>('up');
-  const data = side === 'up' ? up : down;
-
+export default function BreadthIndustriesCard({ side, data, topN }: BreadthIndustriesCardProps) {
   return (
     <SectionCard
-      title="20 percenters"
+      title="20% in 5 days"
       action={
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={side}
-          onChange={(_, next: Polarity | null) => next && setSide(next)}
-        >
-          {SIDES.map(({ key, label }) => (
-            <ToggleButton
-              key={key}
-              value={key}
-              sx={(theme) => ({
-                px: 1,
-                py: 0.25,
-                textTransform: 'none',
-                fontSize: '0.75rem',
-                '&.Mui-selected': {
-                  color: theme.palette[key].main,
-                  bgcolor: alpha(theme.palette[key].main, 0.14),
-                  '&:hover': { bgcolor: alpha(theme.palette[key].main, 0.2) },
-                },
-              })}
-            >
-              {label}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
+        <Typography variant="overline" sx={{ color: `${side}.main`, lineHeight: 1 }}>
+          {side}
+        </Typography>
       }
     >
       <IndustryBars data={data} topN={topN} hue={side} />

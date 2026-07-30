@@ -28,10 +28,11 @@ export const brand = {
  * whichever mode you're in, one pole was always the weak one. These steps hold the
  * same two hues and clear 4.5 on their own surface.
  *
- * `ink` is the label color for text set *inside* a fill (the breadth bar labels) —
- * white or near-black, chosen by the fills' luminance, so one value clears 4.5:1 on
- * both poles of that mode. It is NOT a shade of the fill's own hue: same-hue ink is
- * what made those labels muddy. Wired as `contrastText` on the up/down tokens.
+ * `ink` is the label color for text set *inside* a fill — white or near-black, chosen
+ * by the fills' luminance, so one value clears 4.5:1 on both poles of that mode. It is
+ * NOT a shade of the fill's own hue: same-hue ink reads as mud. Wired as `contrastText`
+ * on the up/down tokens; that's its only consumer now the breadth labels sit outside
+ * their bars.
  *
  * Both pairs pass all six checks of the dataviz skill's `validate_palette.js`
  * against their own surface (light ΔE 16.5 deutan, dark ΔE 13.9 protan).

@@ -119,8 +119,8 @@ src/
 
 ## Routes
 - `/` **Situational Awareness & Themes** — the home dashboard: ±20% weekly breadth over time,
-  the industries behind it, 52w-high + momentum industry domination, and the three ETF baskets
-  (Markets · Sectors · Group Themes) with perf and SMA distance.
+  the industries behind each side of it (one card per polarity), 52w-high industry domination,
+  and the three ETF baskets (Markets · Sectors · Group Themes) with perf and SMA distance.
 - `/watchlists` **Watchlists** — copy-UI: industry-grouped, one-click TradingView-ready copy
   (`###Industry,EX:TICKER,...`). Only screeners with `watchlist && aggregate === true`.
 - `/snapshots` **Snapshots** — browse dated raw CSVs; diff tickers entered/left over time. Stub.

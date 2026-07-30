@@ -5,7 +5,7 @@ import { polarity } from './colors';
 type Polarity = { up: string; down: string; ink: string };
 
 /**
- * The resolved up/down fills and in-bar label ink for the *current* scheme.
+ * The resolved up/down fills (and their contrast ink) for the *current* scheme.
  *
  * Needed because `theme.palette.up.main` is baked to the default (light) scheme at
  * theme-creation time — fine for sx, which resolves through `theme.vars` to a CSS

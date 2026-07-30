@@ -1,20 +1,23 @@
+import Card from '@mui/material/Card';
 import Typography from '@mui/material/Typography';
 import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import type { Basket, BasketRow } from '@/types';
-import SectionCard from './SectionCard';
 import Ticker from './Ticker';
 
 type BasketPerformanceCardProps = {
   basket: Basket;
   data: BasketRow[];
-  /** Defaults to the basket's own name; override when a section heading already carries it. */
-  title?: string;
 };
 
 /** Signed percentage in the theme's semantic up/down ink. */
 function PerfCell({ value }: { value: number | null }) {
-  if (value == null) return <Typography variant="body2" component="span" sx={{ color: 'text.disabled' }}>—</Typography>;
+  if (value == null)
+    return (
+      <Typography variant="body2" component="span" sx={{ color: 'text.disabled' }}>
+        —
+      </Typography>
+    );
   return (
     <Typography
       variant="body2"
@@ -95,21 +98,26 @@ function columnsFor(basket: Basket): GridColDef<BasketRow>[] {
  *
  * The rules-off, banded-row look lives in the theme (customizations/dataGrid) so
  * every grid in the app reads the same; only the banding opt-in is per grid.
+ *
+ * No title bar: the section heading above already names the basket and dates it, and
+ * the columns are labelled, so a header rule here would only repeat one of them. The
+ * card is the surface the table sits on, nothing more.
  */
 export default function BasketPerformanceCard({
   basket,
   data,
-  title,
 }: BasketPerformanceCardProps) {
   return (
-    <SectionCard title={title ?? basket.title}>
+    <Card sx={{ px: 1.75, py: 1 }}>
       <DataGrid
         rows={data}
         columns={columnsFor(basket)}
         getRowId={(row) => row.ticker}
         // Banding follows the rendered order, so it survives sorting — a
         // nth-child rule would not, with virtualized rows.
-        getRowClassName={(params) => (params.indexRelativeToCurrentPage % 2 ? 'row-band' : '')}
+        getRowClassName={(params) =>
+          params.indexRelativeToCurrentPage % 2 ? 'row-band' : ''
+        }
         autoHeight
         initialState={{
           sorting: { sortModel: [{ field: 'perfWeek', sort: 'desc' }] },
@@ -117,6 +125,6 @@ export default function BasketPerformanceCard({
         }}
         pageSizeOptions={[100]}
       />
-    </SectionCard>
+    </Card>
   );
 }
