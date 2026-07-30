@@ -26,7 +26,12 @@ export default function BrandMark() {
       </Box>
       <Typography
         noWrap
-        sx={{ fontSize: '0.8125rem', fontWeight: 700, letterSpacing: '0.075em', lineHeight: 1.3 }}
+        sx={{
+          fontSize: '0.8125rem',
+          fontWeight: 700,
+          letterSpacing: '0.075em',
+          lineHeight: 1.3,
+        }}
       >
         SCREENERS
       </Typography>

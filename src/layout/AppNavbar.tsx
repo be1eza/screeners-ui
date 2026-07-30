@@ -28,7 +28,11 @@ export default function AppNavbar() {
           borderColor: 'divider',
         }}
       >
-        <IconButton size="small" onClick={() => setOpen(true)} aria-label="Open navigation">
+        <IconButton
+          size="small"
+          onClick={() => setOpen(true)}
+          aria-label="Open navigation"
+        >
           <MenuRoundedIcon sx={{ fontSize: 20 }} />
         </IconButton>
         <BrandMark />

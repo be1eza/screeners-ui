@@ -44,7 +44,12 @@ export default function WatchlistCard({ watchlist }: WatchlistCardProps) {
           <Box component="div" key={g.industry}>
             <Typography
               component="span"
-              sx={{ color: 'primary.main', fontWeight: 700, fontFamily: 'inherit', fontSize: 'inherit' }}
+              sx={{
+                color: 'primary.main',
+                fontWeight: 700,
+                fontFamily: 'inherit',
+                fontSize: 'inherit',
+              }}
             >
               ###{g.industry}
             </Typography>

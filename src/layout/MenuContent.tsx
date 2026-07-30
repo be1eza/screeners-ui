@@ -30,7 +30,10 @@ export default function MenuContent({ onNavigate }: MenuContentProps) {
           >
             {group.heading}
           </Typography>
-          <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+          <List
+            disablePadding
+            sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}
+          >
             {group.items.map((item) => (
               <ListItem key={item.path} disablePadding>
                 <ListItemButton

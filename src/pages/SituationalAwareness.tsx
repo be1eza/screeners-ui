@@ -1,18 +1,20 @@
-import { Fragment } from 'react';
+import { Fragment, lazy, Suspense } from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
 import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid2';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import BasketMoversCard from '@/components/BasketMoversCard';
-import BasketPerformanceCard from '@/components/BasketPerformanceCard';
 import BreadthCard from '@/components/BreadthCard';
 import BreadthIndustriesCard from '@/components/BreadthIndustriesCard';
 import IndustryDominationCard from '@/components/IndustryDominationCard';
 import SectionHeading from '@/components/SectionHeading';
 import type { PerfField } from '@/data/analytics';
 import { useSituationalAwareness } from '@/hooks/useSituationalAwareness';
+
+const BasketPerformanceCard = lazy(() => import('@/components/BasketPerformanceCard'));
 
 const TIMEFRAMES: { label: string; field: PerfField }[] = [
   { label: '1W', field: 'perfWeek' },
@@ -79,7 +81,15 @@ export default function SituationalAwareness() {
                 </Grid>
               ))}
               <Grid size={12}>
-                <BasketPerformanceCard basket={basket} data={rows} />
+                <Suspense
+                  fallback={
+                    <Card sx={{ display: 'grid', minHeight: 160, placeItems: 'center' }}>
+                      <CircularProgress size={24} />
+                    </Card>
+                  }
+                >
+                  <BasketPerformanceCard basket={basket} data={rows} />
+                </Suspense>
               </Grid>
             </Fragment>
           ))}

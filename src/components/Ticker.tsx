@@ -17,7 +17,9 @@ type TickerProps = {
  */
 export default function Ticker({ value, title }: TickerProps) {
   const { exchange, symbol } = tickerParts(value);
-  const tooltip = [title, exchange ? `${exchange}:${symbol}` : null].filter(Boolean).join(' · ');
+  const tooltip = [title, exchange ? `${exchange}:${symbol}` : null]
+    .filter(Boolean)
+    .join(' · ');
 
   const chip = (
     <Chip

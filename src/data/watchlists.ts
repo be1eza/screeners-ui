@@ -57,7 +57,9 @@ export function groupByIndustry(
   }
   return [...byIndustry.entries()]
     .map(([industry, groupTokens]) => ({ industry, tokens: groupTokens }))
-    .sort((a, b) => b.tokens.length - a.tokens.length || a.industry.localeCompare(b.industry));
+    .sort(
+      (a, b) => b.tokens.length - a.tokens.length || a.industry.localeCompare(b.industry),
+    );
 }
 
 /**
@@ -69,7 +71,10 @@ export function toTradingView(groups: IndustryGroup[]): string {
 }
 
 /** Build one industry-grouped, TradingView-ready aggregate watchlist. */
-export async function fetchWatchlist(tree: VaultFile[], screener: Screener): Promise<Watchlist> {
+export async function fetchWatchlist(
+  tree: VaultFile[],
+  screener: Screener,
+): Promise<Watchlist> {
   const slug = screener.slug ?? '';
   const tokens = await fetchAggregate(slug);
   const industryOf = await tokenIndustryMap(tree, slug, tokens);

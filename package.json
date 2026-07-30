@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "git ls-files -z | xargs -0 prettier --write --ignore-unknown",
+    "format:check": "git ls-files -z | xargs -0 prettier --check --ignore-unknown"
   },
   "dependencies": {
     "@emotion/react": "^11.13.0",

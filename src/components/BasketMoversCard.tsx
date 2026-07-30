@@ -21,7 +21,15 @@ type BasketMoversCardProps = {
 };
 
 /** One ETF as a zero-centered diverging bar: right/green up, left/red down. */
-function MoverRow({ row, field, max }: { row: BasketRow; field: PerfField; max: number }) {
+function MoverRow({
+  row,
+  field,
+  max,
+}: {
+  row: BasketRow;
+  field: PerfField;
+  max: number;
+}) {
   const value = row[field] ?? 0;
   const positive = value >= 0;
   const width = max > 0 ? (Math.abs(value) / max) * 50 : 0;
@@ -63,7 +71,10 @@ function MoverRow({ row, field, max }: { row: BasketRow; field: PerfField; max: 
             }}
           />
         </Box>
-        <Typography variant="body2" sx={{ width: 62, textAlign: 'right', fontWeight: 600, color }}>
+        <Typography
+          variant="body2"
+          sx={{ width: 62, textAlign: 'right', fontWeight: 600, color }}
+        >
           {positive ? '+' : ''}
           {value.toFixed(2)}%
         </Typography>
@@ -76,12 +87,21 @@ function MoverRow({ row, field, max }: { row: BasketRow; field: PerfField; max: 
  * One basket ranked on one timeframe, as zero-centered diverging bars —
  * either the whole basket best-first, or its best & worst `top` split by a divider.
  */
-export default function BasketMoversCard({ label, field, rows, top }: BasketMoversCardProps) {
-  const { best, worst } = top != null ? basketMovers(rows, field, top) : { best: [], worst: [] };
+export default function BasketMoversCard({
+  label,
+  field,
+  rows,
+  top,
+}: BasketMoversCardProps) {
+  const { best, worst } =
+    top != null ? basketMovers(rows, field, top) : { best: [], worst: [] };
   const all = top == null ? rankedByPerf(rows, field) : [];
 
   // Shared scale so bar lengths are comparable across every row in this card.
-  const max = Math.max(...[...all, ...best, ...worst].map((r) => Math.abs(r[field] ?? 0)), 1);
+  const max = Math.max(
+    ...[...all, ...best, ...worst].map((r) => Math.abs(r[field] ?? 0)),
+    1,
+  );
 
   return (
     <SectionCard title={label}>

@@ -16,7 +16,11 @@ type BreadthIndustriesCardProps = {
  * are read together instead of swapped; the polarity rides in the hue and in the
  * label on the title rule, never in a subtitle.
  */
-export default function BreadthIndustriesCard({ side, data, topN }: BreadthIndustriesCardProps) {
+export default function BreadthIndustriesCard({
+  side,
+  data,
+  topN,
+}: BreadthIndustriesCardProps) {
   return (
     <SectionCard
       title="20% in 5 days"

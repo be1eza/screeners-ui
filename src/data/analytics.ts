@@ -94,7 +94,10 @@ export function rankIndustries(snapshots: Snapshot[]): IndustryRank[] {
 export type PerfField = 'perfWeek' | 'perfMonth' | 'perfQuarter';
 
 /** Project + sort an ETF basket's rows by a chosen timeframe, desc. */
-export function basketPerformance(snapshot: Snapshot, by: PerfField = 'perfWeek'): BasketRow[] {
+export function basketPerformance(
+  snapshot: Snapshot,
+  by: PerfField = 'perfWeek',
+): BasketRow[] {
   return snapshot.rows
     .map(toBasketRow)
     .filter((r) => r.ticker !== '')

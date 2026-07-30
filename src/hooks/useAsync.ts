@@ -10,7 +10,10 @@ export type AsyncState<T> =
  * Guards against setting state after unmount / a superseded run. This app is
  * read-only, so there is no retry/mutation surface — just fetch-and-render.
  */
-export function useAsync<T>(producer: () => Promise<T>, deps: readonly unknown[] = []): AsyncState<T> {
+export function useAsync<T>(
+  producer: () => Promise<T>,
+  deps: readonly unknown[] = [],
+): AsyncState<T> {
   const [state, setState] = useState<AsyncState<T>>({
     status: 'loading',
     data: null,

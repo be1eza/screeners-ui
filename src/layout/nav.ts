@@ -71,9 +71,9 @@ const ITEMS = NAV.flatMap((group) => group.items);
  * first item — the home dashboard — for anything unrouted.
  */
 export function activeItem(pathname: string): NavItem {
-  const matches = ITEMS.filter((item) => item.path !== '/' && pathname.startsWith(item.path)).sort(
-    (a, b) => b.path.length - a.path.length,
-  );
+  const matches = ITEMS.filter(
+    (item) => item.path !== '/' && pathname.startsWith(item.path),
+  ).sort((a, b) => b.path.length - a.path.length);
   return matches[0] ?? ITEMS[0];
 }
 

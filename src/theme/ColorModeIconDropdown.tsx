@@ -63,7 +63,9 @@ export default function ColorModeIconDropdown() {
               <Icon sx={{ fontSize: 16 }} />
             </ListItemIcon>
             {label}
-            {mode === value && <CheckRoundedIcon sx={{ fontSize: 15, ml: 'auto', pl: 1 }} />}
+            {mode === value && (
+              <CheckRoundedIcon sx={{ fontSize: 15, ml: 'auto', pl: 1 }} />
+            )}
           </MenuItem>
         ))}
       </Menu>

@@ -17,7 +17,9 @@ export async function fetchTree(): Promise<VaultFile[]> {
   const data: unknown = await res.json();
   const body = data as GitTreeResponse;
   if (!body.tree) {
-    throw new Error(`git-tree response missing tree${body.message ? `: ${body.message}` : ''}`);
+    throw new Error(
+      `git-tree response missing tree${body.message ? `: ${body.message}` : ''}`,
+    );
   }
   if (body.truncated) {
     throw new Error('git-tree response was truncated');

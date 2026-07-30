@@ -31,7 +31,9 @@ export const dataGridCustomizations: Components<Theme> = {
           borderBottom: 'none',
           borderTop: 'none',
         },
-        '& .MuiDataGrid-columnHeader, & .MuiDataGrid-columnSeparator': { borderRight: 'none' },
+        '& .MuiDataGrid-columnHeader, & .MuiDataGrid-columnSeparator': {
+          borderRight: 'none',
+        },
         '& .MuiDataGrid-columnSeparator': { display: 'none' },
         [[
           '& .MuiDataGrid-cell:focus',

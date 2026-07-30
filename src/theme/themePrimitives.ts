@@ -79,9 +79,24 @@ export const monoFontFamily =
  */
 export const typography = {
   fontFamily,
-  h1: { fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.021em' },
-  h2: { fontSize: '1.25rem', fontWeight: 700, lineHeight: 1.25, letterSpacing: '-0.016em' },
-  h3: { fontSize: '1.0625rem', fontWeight: 700, lineHeight: 1.3, letterSpacing: '-0.011em' },
+  h1: {
+    fontSize: '1.75rem',
+    fontWeight: 700,
+    lineHeight: 1.2,
+    letterSpacing: '-0.021em',
+  },
+  h2: {
+    fontSize: '1.25rem',
+    fontWeight: 700,
+    lineHeight: 1.25,
+    letterSpacing: '-0.016em',
+  },
+  h3: {
+    fontSize: '1.0625rem',
+    fontWeight: 700,
+    lineHeight: 1.3,
+    letterSpacing: '-0.011em',
+  },
   h4: { fontSize: '1rem', fontWeight: 700, lineHeight: 1.35, letterSpacing: '-0.006em' },
   h5: { fontSize: '0.9375rem', fontWeight: 600, lineHeight: 1.4 },
   h6: { fontSize: '0.875rem', fontWeight: 600, lineHeight: 1.4 },
@@ -115,7 +130,12 @@ export const typography = {
 export const colorSchemes = {
   light: {
     palette: {
-      primary: { main: brand.up, light: brand.upLight, dark: brand.upDark, contrastText: '#fff' },
+      primary: {
+        main: brand.up,
+        light: brand.upLight,
+        dark: brand.upDark,
+        contrastText: '#fff',
+      },
       ...polarityTokens('light'),
       grey: gray,
       raised: gray[100],
@@ -131,7 +151,12 @@ export const colorSchemes = {
   },
   dark: {
     palette: {
-      primary: { main: brand.up, light: brand.upLight, dark: brand.upDark, contrastText: '#fff' },
+      primary: {
+        main: brand.up,
+        light: brand.upLight,
+        dark: brand.upDark,
+        contrastText: '#fff',
+      },
       ...polarityTokens('dark'),
       grey: gray,
       raised: gray[800],

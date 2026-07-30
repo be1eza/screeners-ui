@@ -24,7 +24,11 @@ type IndustryBarsProps = {
  * industry (single hue — count is one measure) that expands to its tickers.
  * Shared by every "domination" card so the ranking reads identically everywhere.
  */
-export default function IndustryBars({ data, topN = 8, hue = 'primary' }: IndustryBarsProps) {
+export default function IndustryBars({
+  data,
+  topN = 8,
+  hue = 'primary',
+}: IndustryBarsProps) {
   const theme = useTheme();
   const [expanded, setExpanded] = useState<string | false>(false);
   const rows = data.slice(0, topN);
@@ -65,7 +69,10 @@ export default function IndustryBars({ data, topN = 8, hue = 'primary' }: Indust
                 <Typography variant="body2" noWrap sx={{ mr: 1 }}>
                   {row.industry}
                 </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, color: 'text.secondary' }}
+                >
                   {row.count}
                 </Typography>
               </Stack>
