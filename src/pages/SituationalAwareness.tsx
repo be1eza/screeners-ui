@@ -1,6 +1,8 @@
-import { Fragment, lazy, Suspense } from 'react';
+import { Fragment, lazy, Suspense, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid2';
@@ -11,6 +13,7 @@ import BreadthCard from '@/components/BreadthCard';
 import BreadthIndustriesCard from '@/components/BreadthIndustriesCard';
 import IndustryDominationCard from '@/components/IndustryDominationCard';
 import SectionHeading from '@/components/SectionHeading';
+import SnapshotDateNavigator from '@/components/SnapshotDateNavigator';
 import type { PerfField } from '@/data/analytics';
 import { useSituationalAwareness } from '@/hooks/useSituationalAwareness';
 
@@ -33,27 +36,75 @@ const TIMEFRAMES: { label: string; field: PerfField }[] = [
  * render data only.
  */
 export default function SituationalAwareness() {
-  const state = useSituationalAwareness();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedDate = searchParams.get('date') || null;
+  const state = useSituationalAwareness(requestedDate);
+  const dateErrorMessage =
+    state.error && state.failedDate !== null
+      ? state.data && state.data.date !== state.failedDate
+        ? `Couldn’t load ${state.failedDate}; still showing ${state.data.date}.`
+        : `Couldn’t load ${state.failedDate}: ${state.error.message}`
+      : null;
+
+  const selectDate = useCallback(
+    (date: string | null) => {
+      const nextDate = date === state.latestDate ? null : date;
+      if (nextDate === requestedDate) return;
+
+      const nextParams = new URLSearchParams(searchParams);
+      if (nextDate) nextParams.set('date', nextDate);
+      else nextParams.delete('date');
+      setSearchParams(nextParams, { preventScrollReset: true });
+    },
+    [requestedDate, searchParams, setSearchParams, state.latestDate],
+  );
 
   return (
     <Box>
-      {state.status === 'loading' && (
+      {state.availableDates.length > 0 && (
+        <SnapshotDateNavigator
+          availableDates={state.availableDates}
+          selectedDate={requestedDate}
+          loading={state.loading}
+          errorMessage={dateErrorMessage}
+          onSelect={selectDate}
+          onLatest={() => selectDate(null)}
+          onRetry={state.retry}
+        />
+      )}
+
+      {state.loading && !state.data && (
         <Stack alignItems="center" sx={{ py: 8 }} spacing={2}>
           <CircularProgress />
           <Typography color="text.secondary">Reading the vault…</Typography>
         </Stack>
       )}
 
-      {state.status === 'error' && (
-        <Alert severity="error" sx={{ mt: 2 }}>
+      {state.error && state.failedDate === null && (
+        <Alert
+          severity="error"
+          action={
+            state.retry ? (
+              <Button color="inherit" size="small" onClick={state.retry}>
+                Retry
+              </Button>
+            ) : undefined
+          }
+          sx={{ mt: 2 }}
+        >
           Couldn’t load vault data: {state.error.message}
         </Alert>
       )}
 
-      {state.status === 'success' && (
-        <Grid container spacing={2}>
+      {state.data && (
+        <Grid container spacing={2} aria-busy={state.loading}>
           <Grid size={12}>
-            <BreadthCard data={state.data.breadth} />
+            <BreadthCard
+              data={state.data.breadth}
+              selectableDates={state.availableDates}
+              selectedDate={state.data.date}
+              onSelectDate={selectDate}
+            />
           </Grid>
           <Grid size={{ xs: 12, md: 6, lg: 4 }}>
             <BreadthIndustriesCard side="up" data={state.data.movers20.up} />

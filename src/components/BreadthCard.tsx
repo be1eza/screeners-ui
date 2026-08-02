@@ -1,15 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
-import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
-import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
-import { BarChart, BarLabel } from '@mui/x-charts/BarChart';
+import {
+  BarChart,
+  BarLabel,
+  barElementClasses,
+  barLabelClasses,
+} from '@mui/x-charts/BarChart';
 import type { BarLabelProps } from '@mui/x-charts/BarChart';
 import type { AxisConfig, ChartsXAxisProps } from '@mui/x-charts';
 import { axisClasses } from '@mui/x-charts/ChartsAxis';
@@ -79,6 +78,10 @@ function BreadthBarLabel(props: BarLabelProps) {
 
 type BreadthCardProps = {
   data: BreadthPoint[];
+  /** Dates with a complete page bundle; older breadth-only bars remain context. */
+  selectableDates: readonly string[];
+  selectedDate: string;
+  onSelectDate: (date: string) => void;
 };
 
 /**
@@ -89,25 +92,14 @@ type BreadthCardProps = {
  */
 type BandAxis = Partial<AxisConfig<'band', string, ChartsXAxisProps>>;
 
-/** Snapshots in view. `'all'` is the whole history the vault has. */
-type Range = 30 | 90 | 'all';
+/** Number of dated vault readings shown at once. */
+const WINDOW_SIZE = 30;
+const MIN_PLOT_WIDTH = 320;
+const MIN_BAND_WIDTH = 40;
 
-const RANGES: { value: Range; label: string }[] = [
-  { value: 30, label: '30' },
-  { value: 90, label: '90' },
-  { value: 'all', label: 'All' },
-];
-
-/** The narrowest range — below this much history there's nothing to pan or zoom. */
-const MIN_RANGE = 30;
-
-/**
- * Past this many columns a per-bar label has no room — the bands narrow until the
- * digits collide — so the values move to the y-axis instead. Labelling every bar *and*
- * showing an axis is redundant, and with no tooltip one of the two has to carry the
- * values, so it's always exactly one.
- */
-const MAX_LABELLED = 12;
+const SELECTED_LABEL_CLASS = 'BreadthCard-selectedLabel';
+const UNSELECTABLE_BAR_CLASS = 'BreadthCard-unselectableBar';
+const UNSELECTABLE_LABEL_CLASS = 'BreadthCard-unselectableLabel';
 
 /** ISO `YYYY-MM-DD` → European `D/M` (e.g. "2026-07-27" → "27/7"). */
 function dayMonth(iso: string): string {
@@ -165,44 +157,53 @@ function KeyDot({ label, color }: { label: string; color: string }) {
  * carrying the polarity and hue becomes the only thing distinguishing them — which
  * is why the header carries a key. Without it the chart would be color-alone.
  *
- * The window shows the newest 30 snapshots by default and pans back through
- * history; the vault keeps every dated CSV, so the range grows on its own. Note the
- * unit is *snapshots*, not calendar days — the vault only writes on fetch days, so
- * "30" is 30 readings, which is why the toggle is unlabelled rather than "30D".
+ * The window shows a stable block of up to 30 snapshots around the page's selected
+ * date. Clicking either bar selects that date for the entire page without moving the
+ * block; long-range navigation lives in the page-level snapshot navigator.
  */
-export default function BreadthCard({ data }: BreadthCardProps) {
+export default function BreadthCard({
+  data,
+  selectableDates,
+  selectedDate,
+  onSelectDate,
+}: BreadthCardProps) {
   const { up, down } = usePolarity();
-  const [range, setRange] = useState<Range>(30);
-  // Snapshots back from the newest. 0 == showing the most recent window.
-  const [offset, setOffset] = useState(0);
+  const chartViewportRef = useRef<HTMLDivElement>(null);
   // Which band the pointer is on, so its date can answer with the counts above it.
   const [hovered, setHovered] = useState<number | null>(null);
 
-  const size = range === 'all' ? data.length : Math.min(range, data.length);
-  const maxOffset = Math.max(0, data.length - size);
-  const clamped = Math.min(offset, maxOffset);
-  const start = maxOffset - clamped;
-  const visible = data.slice(start, start + size);
-  const labelled = visible.length <= MAX_LABELLED;
-
-  // Half a window per press: enough to move, little enough to keep your bearings.
-  const step = Math.max(1, Math.floor(size / 2));
-  const panBack = () => setOffset(Math.min(clamped + step, maxOffset));
-  const panForward = () => setOffset(Math.max(clamped - step, 0));
-
-  const changeRange = (next: Range) => {
-    // Hold the reader's position where the new range still reaches it, rather
-    // than snapping back to "now" on every zoom.
-    const nextSize = next === 'all' ? data.length : Math.min(next, data.length);
-    setOffset(Math.min(clamped, Math.max(0, data.length - nextSize)));
-    setRange(next);
+  const visible = data.slice(-WINDOW_SIZE);
+  const selectable = useMemo(() => new Set(selectableDates), [selectableDates]);
+  const selectedVisibleIndex = visible.findIndex((point) => point.date === selectedDate);
+  const selected = (selectedVisibleIndex >= 0
+    ? visible[selectedVisibleIndex]
+    : visible.at(-1)) ?? {
+    up: 0,
+    down: 0,
+    date: '',
   };
+  const plotMinWidth = Math.max(MIN_PLOT_WIDTH, visible.length * MIN_BAND_WIDTH);
 
-  const latest = visible.at(-1) ?? { up: 0, down: 0, date: '' };
-  // Highest count on top.
+  useEffect(() => {
+    const viewport = chartViewportRef.current;
+    if (!viewport || selectedVisibleIndex < 0 || visible.length === 0) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const selectedCentre =
+        ((selectedVisibleIndex + 0.5) / visible.length) * viewport.scrollWidth;
+      viewport.scrollTo({
+        left: Math.max(0, selectedCentre - viewport.clientWidth / 2),
+        behavior: 'auto',
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedDate, selectedVisibleIndex, visible.length]);
+
+  // Highest selected-date count on top.
   const counts = [
-    { key: 'up', value: latest.up, color: up },
-    { key: 'down', value: latest.down, color: down },
+    { key: 'up', value: selected.up, color: up },
+    { key: 'down', value: selected.down, color: down },
   ].sort((a, b) => b.value - a.value);
 
   const xAxis: BandAxis[] = [
@@ -211,10 +212,10 @@ export default function BreadthCard({ data }: BreadthCardProps) {
       data: visible.map((d) => dayMonth(d.date)),
       // Keep the baseline (bars grow from it) but drop the tick marks.
       disableTicks: true,
-      // Most of each band is air, and the pair inside it is split by a real gap:
-      // saturated fills read loud at slab width however good the hue is.
-      categoryGapRatio: 0.6,
-      barGapRatio: 0.3,
+      // Treat each date as one visual unit: the two poles nearly touch inside
+      // their date band, while most of the air sits between adjacent dates.
+      categoryGapRatio: 0.3,
+      barGapRatio: 0.03,
     },
   ];
 
@@ -227,113 +228,189 @@ export default function BreadthCard({ data }: BreadthCardProps) {
             <KeyDot label="Up" color={up} />
             <KeyDot label="Down" color={down} />
           </Stack>
-          {/* Hidden until there's more history than the narrowest window — dead
-              controls that can't move anything are worse than no controls. */}
-          {data.length > MIN_RANGE && (
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <ToggleButtonGroup
-                size="small"
-                exclusive
-                value={range}
-                onChange={(_, next: Range | null) => next !== null && changeRange(next)}
-              >
-                {RANGES.map(({ value, label }) => (
-                  <ToggleButton key={String(value)} value={value}>
-                    {label}
-                  </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-              <Stack direction="row">
-                <Tooltip title="Earlier snapshots">
-                  <IconButton
-                    size="small"
-                    onClick={panBack}
-                    disabled={clamped >= maxOffset}
-                  >
-                    <ChevronLeftRoundedIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Later snapshots">
-                  <IconButton size="small" onClick={panForward} disabled={clamped === 0}>
-                    <ChevronRightRoundedIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-            </Stack>
-          )}
         </Stack>
       }
     >
-      <Stack direction="row" alignItems="stretch" spacing={2.5}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        alignItems="stretch"
+        spacing={{ xs: 1.5, sm: 2.5 }}
+      >
         <Stack
-          spacing={2}
+          direction={{ xs: 'row', sm: 'column' }}
+          spacing={{ xs: 2, sm: 2 }}
           justifyContent="center"
           // Centred on both axes: `justifyContent` down the column, `alignItems`
           // across it, so the pair sits in the middle of the fenced-off box rather
           // than hugging the hairline.
           alignItems="center"
-          sx={{ pr: 2.5, borderRight: '1px solid', borderColor: 'divider' }}
+          sx={{
+            pr: { xs: 0, sm: 2.5 },
+            pb: { xs: 1.5, sm: 0 },
+            borderRight: { xs: 0, sm: '1px solid' },
+            borderBottom: { xs: '1px solid', sm: 0 },
+            borderColor: 'divider',
+          }}
         >
           {counts.map((c) => (
             <CountStat key={c.key} value={c.value} color={c.color} />
           ))}
         </Stack>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <BarChart
-            height={216}
-            // 4px rounded cap, square where it meets the baseline.
-            borderRadius={4}
-            xAxis={xAxis}
-            // Values live either on the bars or on the axis, never both and never
-            // neither — see MAX_LABELLED. When the axis carries them it's ticks
-            // only; the horizontal grid does the reaching-across, not a rule.
-            leftAxis={labelled ? null : { disableLine: true, disableTicks: true }}
-            grid={labelled ? undefined : { horizontal: true }}
-            series={[
-              { id: 'up', label: 'Up', data: visible.map((d) => d.up), color: up },
-              {
-                id: 'down',
-                label: 'Down',
-                data: visible.map((d) => d.down),
-                color: down,
-              },
-            ]}
-            barLabel={
-              labelled ? (item) => (item.value ? String(item.value) : null) : undefined
-            }
-            slots={{ barLabel: BreadthBarLabel }}
-            // The header carries the key instead — it survives at any plot width.
-            slotProps={{ legend: { hidden: true } }}
-            // No tooltip and no highlight band. The tooltip only restated the count
-            // and the date, both already printed on the plot, and the band was a grey
-            // wash over the whole column to say "this one".
-            tooltip={{ trigger: 'none' }}
-            axisHighlight={{ x: 'none' }}
-            // The reply to a hover instead: the band's counts and its date come up to
-            // full-strength ink and everything else stays put. Nothing moves, nothing
-            // is covered, and the numbers you're reading are the ones that brighten.
-            onHighlightChange={(item) => setHovered(item?.dataIndex ?? null)}
-            sx={
-              hovered === null
-                ? undefined
-                : (theme) => ({
-                    // Band ticks come off the axis domain in order, so tick container
-                    // n is data index n. The tick-label slot gets no index of its own,
-                    // and matching on the printed date would light both "15/7"s in a
-                    // window spanning more than a year.
-                    [`& .${axisClasses.tickContainer}:nth-of-type(${hovered + 1}) .${axisClasses.tickLabel}`]:
-                      { fill: (theme.vars || theme).palette.text.primary },
-                  })
-            }
-            // Extra headroom when labelled: the digits sit above the tallest bar,
-            // which can reach the top of the plot.
-            margin={{
-              top: labelled ? 22 : 12,
-              right: 4,
-              bottom: 24,
-              left: labelled ? 4 : 34,
+        <Box
+          ref={chartViewportRef}
+          role="region"
+          tabIndex={0}
+          aria-label={`20 percent in 5 days breadth across ${visible.length} dated readings. Scroll horizontally to inspect dates; dimmed bars have breadth data only.`}
+          sx={{
+            position: 'relative',
+            flex: 1,
+            minWidth: 0,
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            overscrollBehaviorX: 'contain',
+            '&:focus-visible': {
+              outline: '2px solid',
+              outlineColor: 'primary.main',
+              outlineOffset: 2,
+            },
+          }}
+        >
+          <Box sx={{ width: '100%', minWidth: plotMinWidth }}>
+            <BarChart
+              aria-hidden="true"
+              height={216}
+              // 4px rounded cap, square where it meets the baseline.
+              borderRadius={4}
+              xAxis={xAxis}
+              // The selected date stays labelled; another pair appears only while
+              // its date is being inspected by hover.
+              leftAxis={null}
+              series={[
+                { id: 'up', label: 'Up', data: visible.map((d) => d.up), color: up },
+                {
+                  id: 'down',
+                  label: 'Down',
+                  data: visible.map((d) => d.down),
+                  color: down,
+                },
+              ]}
+              barLabel={(item) =>
+                item.value != null &&
+                (item.dataIndex === selectedVisibleIndex || item.dataIndex === hovered)
+                  ? String(item.value)
+                  : null
+              }
+              slots={{ barLabel: BreadthBarLabel }}
+              // The header carries the key instead — it survives at any plot width.
+              slotProps={{
+                legend: { hidden: true },
+                bar: ({ dataIndex }) => {
+                  const point = visible[dataIndex];
+                  const unavailable = point && !selectable.has(point.date);
+
+                  return {
+                    className: unavailable ? UNSELECTABLE_BAR_CLASS : undefined,
+                  };
+                },
+                barLabel: ({ dataIndex }) => {
+                  const point = visible[dataIndex];
+                  const classes = [
+                    dataIndex === selectedVisibleIndex ? SELECTED_LABEL_CLASS : '',
+                    point && !selectable.has(point.date) ? UNSELECTABLE_LABEL_CLASS : '',
+                  ].filter(Boolean);
+
+                  return {
+                    className: classes.length > 0 ? classes.join(' ') : undefined,
+                  };
+                },
+              }}
+              // No tooltip or highlight wash: hovering reveals that date's two labels,
+              // while the bars and surrounding plot stay visually still.
+              tooltip={{ trigger: 'none' }}
+              axisHighlight={{ x: 'none' }}
+              onAxisClick={(_event, axis) => {
+                const point = axis ? visible[axis.dataIndex] : undefined;
+                if (point && selectable.has(point.date)) onSelectDate(point.date);
+              }}
+              // The reply to a hover instead: the band's counts and its date come up to
+              // full-strength ink and everything else stays put. Nothing moves, nothing
+              // is covered, and the numbers you're reading are the ones that brighten.
+              onHighlightChange={(item) => setHovered(item?.dataIndex ?? null)}
+              sx={(theme) => ({
+                touchAction: 'pan-x pan-y',
+                cursor: 'pointer',
+                [`& .${barElementClasses.root}.${UNSELECTABLE_BAR_CLASS}`]: {
+                  cursor: 'not-allowed',
+                  opacity: 0.55,
+                },
+                [`& .${barLabelClasses.root}.${SELECTED_LABEL_CLASS}`]: {
+                  fill: (theme.vars || theme).palette.text.primary,
+                  fontWeight: 700,
+                },
+                [`& .${barLabelClasses.root}.${UNSELECTABLE_LABEL_CLASS}`]: {
+                  fill: (theme.vars || theme).palette.text.disabled,
+                },
+                ...(selectedVisibleIndex >= 0 && {
+                  [`& .${axisClasses.tickContainer}:nth-of-type(${selectedVisibleIndex + 1}) .${axisClasses.tickLabel}`]:
+                    {
+                      fill: (theme.vars || theme).palette.text.primary,
+                      fontWeight: 700,
+                    },
+                }),
+                // Band ticks come off the axis domain in order, so tick container n is
+                // data index n. Matching printed text would light repeated dates once
+                // the history spans more than a year.
+                ...(hovered !== null && {
+                  [`& .${axisClasses.tickContainer}:nth-of-type(${hovered + 1}) .${axisClasses.tickLabel}`]:
+                    { fill: (theme.vars || theme).palette.text.primary },
+                }),
+              })}
+              // The digits sit above the tallest bar, which can reach the plot's top.
+              margin={{
+                top: 22,
+                right: 4,
+                bottom: 24,
+                left: 4,
+              }}
+            />
+          </Box>
+          <Box
+            sx={{
+              position: 'absolute',
+              width: 1,
+              height: 1,
+              p: 0,
+              m: -1,
+              overflow: 'hidden',
+              clip: 'rect(0 0 0 0)',
+              whiteSpace: 'nowrap',
+              border: 0,
             }}
-          />
+          >
+            <table>
+              <caption>20 percent in 5 days breadth values</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Up</th>
+                  <th scope="col">Down</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((point) => (
+                  <tr key={point.date}>
+                    <th scope="row">
+                      {point.date}
+                      {point.date === selectedDate ? ' (selected)' : ''}
+                      {!selectable.has(point.date) ? ' (breadth only)' : ''}
+                    </th>
+                    <td>{point.up}</td>
+                    <td>{point.down}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
         </Box>
       </Stack>
     </SectionCard>

@@ -6,6 +6,8 @@ import ColorModeIconDropdown from '@/theme/ColorModeIconDropdown';
 import BrandMark from './BrandMark';
 import SideMenuMobile from './SideMenuMobile';
 
+export const MOBILE_APP_NAVBAR_HEIGHT = 48;
+
 /** Mobile-only top bar: opens the rail as a drawer, and carries the mode switch. */
 export default function AppNavbar() {
   const [open, setOpen] = useState(false);
@@ -20,6 +22,7 @@ export default function AppNavbar() {
           top: 0,
           zIndex: (theme) => theme.zIndex.appBar,
           alignItems: 'center',
+          height: MOBILE_APP_NAVBAR_HEIGHT,
           gap: 1,
           px: 1.5,
           py: 1,
